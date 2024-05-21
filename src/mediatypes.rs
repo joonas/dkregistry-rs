@@ -8,6 +8,21 @@ use strum::EnumProperty;
 
 #[derive(EnumProperty, EnumString, Display, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum MediaTypes {
+    // OCI Image Index type
+    // https://github.com/opencontainers/image-spec/blob/main/image-index.md
+    #[strum(serialize = "application/vnd.oci.image.index.v1+json")]
+    #[strum(props(Sub = "vnd.oci.image.index.v1+json"))]
+    OCIImageIndexV1,
+    // OCI Image Manifest type
+    // https://github.com/opencontainers/image-spec/blob/main/manifest.md
+    #[strum(serialize = "application/vnd.oci.image.manifest.v1+json")]
+    #[strum(props(Sub = "vnd.oci.image.manifest.v1+json"))]
+    OCIImageManifestV1,
+    // OCI Image Config type
+    // https://github.com/opencontainers/image-spec/blob/main/config.md
+    #[strum(serialize = "application/vnd.oci.image.config.v1+json")]
+    #[strum(props(Sub = "vnd.oci.image.config.v1+json"))]
+    OCIImageConfigV1,
     /// Manifest, version 2 schema 1.
     #[strum(serialize = "application/vnd.docker.distribution.manifest.v1+json")]
     #[strum(props(Sub = "vnd.docker.distribution.manifest.v1+json"))]
@@ -45,6 +60,9 @@ impl MediaTypes {
             (mime::APPLICATION, mime::JSON, _) => Ok(MediaTypes::ApplicationJson),
             (mime::APPLICATION, subt, Some(suff)) => {
                 match (subt.to_string().as_str(), suff.to_string().as_str()) {
+                    ("vnd.oci.image.index.v1", "json") => Ok(MediaTypes::OCIImageIndexV1),
+                    ("vnd.oci.image.manifest.v1", "json") => Ok(MediaTypes::OCIImageManifestV1),
+                    ("vnd.oci.image.config.v1", "json") => Ok(MediaTypes::OCIImageConfigV1),
                     ("vnd.docker.distribution.manifest.v1", "json") => Ok(MediaTypes::ManifestV2S1),
                     ("vnd.docker.distribution.manifest.v1", "prettyjws") => {
                         Ok(MediaTypes::ManifestV2S1Signed)

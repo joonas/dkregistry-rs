@@ -1,5 +1,85 @@
+use std::collections::HashMap;
+
 use crate::errors::{Error, Result};
 use reqwest::Method;
+
+/// OCI Image Manifest v1
+///
+/// Specification is at <https://github.com/opencontainers/image-spec/blob/main/manifest.md>
+// #[derive(Debug, Default, Deserialize, Serialize)]
+// pub struct OCIImageManifestSchemav1 {
+//     #[serde(rename = "schemaVersion")]
+//     schema_version: u16,
+//     #[serde(rename = "mediaType")]
+//     media_type: String,
+//     #[serde(rename = "artifactType")]
+//     artifact_type: Option<String>,
+//     config: OCIImageConfigV1Schema,
+//     layers: Vec<OCIImageLayerV1Schema>,
+//     subject: Option<String>,
+// }
+
+// As implemented by wasmCloud
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct OCIImageManifestSchemav1 {
+    #[serde(rename = "schemaVersion")]
+    schema_version: u16,
+    config: OCIImageConfigV1Schema,
+    layers: Vec<OCIImageLayerV1Schema>,
+    subject: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    annotations: Option<HashMap<String, String>>,
+}
+
+impl OCIImageManifestSchemav1 {
+    /// List digests of all layers referenced by this manifest.
+    ///
+    /// The returned layers list is ordered starting with the base image first.
+    pub fn get_layers(&self) -> Vec<String> {
+        self.layers.iter().map(|l| l.digest.clone()).collect()
+    }
+
+    /// Get the architecture from the config
+    pub fn architecture(&self) -> String {
+        "wasm".to_string()
+    }
+}
+
+/// OCI Image Config v1
+///
+/// Specification is at <https://github.com/opencontainers/image-spec/blob/main/config.md>
+// #[derive(Debug, Default, Deserialize, Serialize)]
+//pub struct OCIImageConfigV1Schema {
+//    created: Option<String>,
+//    author: Option<String>,
+//    architecture: String,
+//    os: String,
+//    #[serde(rename = "os.version")]
+//    os_version: Option<String>,
+//    #[serde(rename = "os.features")]
+//    os_features: Option<Vec<String>>,
+//    variant: Option<String>,
+//}
+
+// NOTE: THIS IS EMPTY BECAUSE WASMCLOUD PUBLISHES THESE AS EMPTY, for now.
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct OCIImageConfigV1Schema {
+    digest: String,
+    #[serde(rename = "mediaType")]
+    media_type: String,
+    size: u32,
+}
+
+/// OCI Image Layer v1
+///
+/// Specification is at <https://github.com/opencontainers/image-spec/blob/main/layer.md>
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct OCIImageLayerV1Schema {
+    digest: String,
+    #[serde(rename = "mediaType")]
+    media_type: String,
+    size: u32,
+}
 
 /// Manifest version 2 schema 2.
 ///

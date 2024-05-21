@@ -72,6 +72,12 @@ impl Client {
         );
 
         match media_type {
+            mediatypes::MediaTypes::OCIImageManifestV1 => Ok((
+                res.json::<manifest_schema2::OCIImageManifestSchemav1>()
+                    .await
+                    .map(Manifest::OCIV1)?,
+                content_digest,
+            )),
             mediatypes::MediaTypes::ManifestV2S1Signed => Ok((
                 res.json::<ManifestSchema1Signed>()
                     .await
@@ -278,6 +284,7 @@ fn build_accept_headers(accepted_types: &[(MediaTypes, Option<f64>)]) -> header:
 /// Umbrella type for common actions on the different manifest schema types
 #[derive(Debug)]
 pub enum Manifest {
+    OCIV1(manifest_schema2::OCIImageManifestSchemav1),
     S1Signed(manifest_schema1::ManifestSchema1Signed),
     S2(manifest_schema2::ManifestSchema2),
     ML(manifest_schema2::ManifestList),
@@ -313,6 +320,7 @@ impl Manifest {
     /// The returned layers list for non ManifestList images is ordered starting with the base image first.
     pub fn layers_digests(&self, architecture: Option<&str>) -> Result<Vec<String>> {
         match (self, self.architectures(), architecture) {
+            (Manifest::OCIV1(m), _, None) => Ok(m.get_layers()),
             (Manifest::S1Signed(m), _, None) => Ok(m.get_layers()),
             (Manifest::S2(m), _, None) => Ok(m.get_layers()),
             (Manifest::S1Signed(m), Ok(ref self_architectures), Some(ref a)) => {
@@ -341,6 +349,7 @@ impl Manifest {
     /// The architectures of the image the manifest points to, if available.
     pub fn architectures(&self) -> Result<Vec<String>> {
         match self {
+            Manifest::OCIV1(m) => Ok([m.architecture()].to_vec()),
             Manifest::S1Signed(m) => Ok([m.architecture.clone()].to_vec()),
             Manifest::S2(m) => Ok([m.architecture()].to_vec()),
             Manifest::ML(m) => Ok(m.architectures()),
