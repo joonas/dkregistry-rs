@@ -12,6 +12,7 @@ pub struct Config {
     accept_invalid_certs: bool,
     root_certificates: Vec<Certificate>,
     accepted_types: Option<Vec<(MediaTypes, Option<f64>)>>,
+    client: Option<reqwest::Client>,
 }
 
 impl Config {
@@ -66,6 +67,13 @@ impl Config {
         self
     }
 
+    pub fn client(mut self, client: Option<reqwest::Client>) -> Self {
+        if client.is_some() {
+            self.client = client;
+        }
+        self
+    }
+
     /// Read credentials from a JSON config file
     pub fn read_credentials<T: ::std::io::Read>(mut self, reader: T) -> Self {
         if let Ok(creds) = crate::get_credentials(reader, &self.index) {
@@ -96,14 +104,17 @@ impl Config {
             )),
         };
 
-        let mut builder =
-            reqwest::ClientBuilder::new().danger_accept_invalid_certs(self.accept_invalid_certs);
+        let client = if self.client.is_some() {
+            Ok(self.client.unwrap())
+        } else {
+            let mut builder = reqwest::ClientBuilder::new()
+                .danger_accept_invalid_certs(self.accept_invalid_certs);
 
-        for ca in self.root_certificates {
-            builder = builder.add_root_certificate(ca)
-        }
-
-        let client = builder.build()?;
+            for ca in self.root_certificates {
+                builder = builder.add_root_certificate(ca)
+            }
+            builder.build()
+        }?;
 
         let accepted_types = match self.accepted_types {
             Some(a) => a,
@@ -149,6 +160,7 @@ impl Default for Config {
             user_agent: Some(crate::USER_AGENT.to_owned()),
             username: None,
             password: None,
+            client: None,
         }
     }
 }
